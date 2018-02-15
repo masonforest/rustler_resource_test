@@ -21,7 +21,7 @@ mod atoms {
 }
 
 
-pub fn on_load<'a>(env: NifEnv<'a>) -> bool {
+fn on_load<'a>(env: NifEnv<'a>, _load_info: NifTerm<'a>) -> bool {
     resource_struct_init!(DBHandle, env);
     true
 }
@@ -39,13 +39,14 @@ impl Deref for DBHandle {
 
 rustler_export_nifs! {
     "Elixir.NativeModule",
-    [("get_resource", 0, get_resource)],
-    None
+    [("get_resource", 1, get_resource)],
+    Some(on_load)
 }
 
 fn get_resource<'a>(env: NifEnv<'a>, args: &[NifTerm<'a>]) -> NifResult<NifTerm<'a>> {
+    let path: &str = try!(args[0].decode());
+    let db: DB = DB::open_default(path).unwrap();
 
-    let db = DB::open_default("tmp/blockchain.db").unwrap();
     let resp =
         (atoms::ok(), ResourceArc::new(DBHandle{
             db: Arc::new(RwLock::new(db)),
